@@ -284,9 +284,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridSize: {x: 20, y: 20, z: 20}
+  cellSize: 0.9
   increment: 4.39
   offset: {x: 0, y: 0, z: 0}
   offsetSpeed: {x: 0, y: 0, z: 0}
+  particlePrefab: {fileID: 1959147517294022, guid: 15d2495e1b48e55459177b26d0828653,
+    type: 2}
+  amountOfParticles: 1000
+  particles: []
+  particleScale: 0.2
+  spawnRadius: 2
 --- !u!4 &1283553495
 Transform:
   m_ObjectHideFlags: 0

@@ -6,25 +6,80 @@ public class NoiseFlowField : MonoBehaviour
 {
 	FastNoise fastNoise;
 	public Vector3Int gridSize;
+	public float cellSize;
+	public Vector3[,,] flowFieldDirections;
 	public float increment;
 	public Vector3 offset, offsetSpeed;
+
+	public GameObject particlePrefab;
+	public int amountOfParticles;
+	[HideInInspector]
+	public List<FlowFieldParticle> particles;
+	public float particleScale;
+	public float spawnRadius;
+
+	private bool particleSpawnValidation(Vector3 position)
+	{
+		bool valid = true;
+		foreach(FlowFieldParticle particle in particles)
+		{
+			if(Vector3.Distance(position, particle.transform.position) < spawnRadius)
+			{
+				valid = false;
+				break;
+			}
+		}
+
+		if(valid)
+			return true;
+		else
+			return false;
+	}
 
 	// Use this for initialization
 	void Start () 
 	{
-		
+		flowFieldDirections = new Vector3[gridSize.x, gridSize.y, gridSize.z];
+		fastNoise = new FastNoise();
+
+		particles = new List<FlowFieldParticle>();
+		for(int i = 0 ; i < amountOfParticles ; i++)
+		{
+			int attempt = 0;
+
+			while(attempt < 100)
+			{
+				Vector3 randomPos = new Vector3
+									(
+										Random.Range(this.transform.position.x, this.transform.position.x + gridSize.x * cellSize),
+										Random.Range(this.transform.position.y, this.transform.position.y + gridSize.y * cellSize),
+										Random.Range(this.transform.position.z, this.transform.position.z + gridSize.z * cellSize)
+									);
+
+				bool isValid = particleSpawnValidation(randomPos);
+	
+				if(isValid)
+				{
+					GameObject particleInstance = (GameObject)Instantiate(particlePrefab);
+					particleInstance.transform.position = randomPos;
+					particleInstance.transform.localScale = new Vector3(particleScale, particleScale, particleScale);
+					particleInstance.transform.parent = this.transform;
+	
+					particles.Add(particleInstance.GetComponent<FlowFieldParticle>());
+				}
+				else
+				{
+					attempt++;
+				}
+			}
+			
+			Debug.Log(particles.Count);
+		}
 	}
 	
 	// Update is called once per frame
 	void Update () 
 	{
-		
-	}
-
-	private void OnDrawGizmos() 
-	{
-		fastNoise = new FastNoise();
-
 		float xOff = 0;
 		for(int x = 0 ; x < gridSize.x ; x++)
 		{
@@ -40,11 +95,7 @@ public class NoiseFlowField : MonoBehaviour
 					// create noise into direction
 					Vector3 noiseDirection = new Vector3(Mathf.Cos(noise * Mathf.PI), Mathf.Sin(noise * Mathf.PI), Mathf.Cos(noise * Mathf.PI));
 
-					Gizmos.color = new Color(noiseDirection.normalized.x, noiseDirection.normalized.y, noiseDirection.z, 1.0f);  
-					Vector3 pos = new Vector3(x,y,z) + transform.position;
-					Vector3 endPos = pos + Vector3.Normalize(noiseDirection);
-					
-					Gizmos.DrawLine(pos, endPos);
+					flowFieldDirections[x,y,z] = Vector3.Normalize(noiseDirection);
 					zOff += increment;
 				}
 
@@ -54,4 +105,13 @@ public class NoiseFlowField : MonoBehaviour
 			xOff += increment;
 		}
 	}
+
+	private void OnDrawGizmos() 
+	{
+		Gizmos.color = Color.white;
+		Gizmos.DrawWireCube(this.transform.position + new Vector3((gridSize.x * cellSize) * 0.5f, (gridSize.y * cellSize) * 0.5f, (gridSize.z * cellSize) * 0.5f), 
+							new Vector3((gridSize.x * cellSize), (gridSize.y * cellSize), (gridSize.z * cellSize)));
+	}
+
+
 }
