@@ -15,8 +15,9 @@ public class NoiseFlowField : MonoBehaviour
 	public int amountOfParticles;
 	[HideInInspector]
 	public List<FlowFieldParticle> particles;
-	public float particleScale;
+	
 	public float spawnRadius;
+	public float particleScale, particleMoveSpeed, particleRotateSpeed;
 
 	private bool particleSpawnValidation(Vector3 position)
 	{
@@ -76,10 +77,11 @@ public class NoiseFlowField : MonoBehaviour
 			Debug.Log(particles.Count);
 		}
 	}
-	
-	// Update is called once per frame
-	void Update () 
+
+	void CalculateFlowFieldDirection()
 	{
+		offset = new Vector3(offset.x + (offsetSpeed.x * Time.deltaTime), offset.y + (offsetSpeed.y * Time.deltaTime), offset.z + (offsetSpeed.z * Time.deltaTime));
+		
 		float xOff = 0;
 		for(int x = 0 ; x < gridSize.x ; x++)
 		{
@@ -104,6 +106,60 @@ public class NoiseFlowField : MonoBehaviour
 
 			xOff += increment;
 		}
+	}
+
+	void ParticleBehavior()
+	{
+		foreach(FlowFieldParticle p in particles)
+		{
+			// X EDGES
+			if(p.transform.position.x > this.transform.position.x + (gridSize.x * cellSize))
+			{
+				p.transform.position = new Vector3(this.transform.position.x, p.transform.position.y, p.transform.position.z);
+			}
+			if(p.transform.position.x < this.transform.position.x)
+			{
+				p.transform.position = new Vector3(this.transform.position.x + (gridSize.x * cellSize), p.transform.position.y, p.transform.position.z);
+			}
+
+			// Y EDGES
+			if(p.transform.position.y > this.transform.position.y + (gridSize.y * cellSize))
+			{
+				p.transform.position = new Vector3(p.transform.position.x, this.transform.position.y, p.transform.position.z);
+			}
+			if(p.transform.position.y < this.transform.position.y)
+			{
+				p.transform.position = new Vector3(p.transform.position.x, this.transform.position.y + (gridSize.y * cellSize), p.transform.position.z);
+			}
+
+			// Z EDGES
+			if(p.transform.position.z > this.transform.position.z + (gridSize.z * cellSize))
+			{
+				p.transform.position = new Vector3(p.transform.position.x, p.transform.position.y, this.transform.position.z);
+			}
+			if(p.transform.position.z < this.transform.position.z)
+			{
+				p.transform.position = new Vector3(p.transform.position.x, p.transform.position.y, this.transform.position.x + (gridSize.x * cellSize));
+			}
+
+			Vector3Int particlePos = new Vector3Int
+									 (
+										 Mathf.FloorToInt(Mathf.Clamp((p.transform.position.x - this.transform.position.x)/cellSize, 0, gridSize.x-1)),
+										 Mathf.FloorToInt(Mathf.Clamp((p.transform.position.y - this.transform.position.y)/cellSize, 0, gridSize.y-1)),
+										 Mathf.FloorToInt(Mathf.Clamp((p.transform.position.z - this.transform.position.z)/cellSize, 0, gridSize.z-1)) 
+									 );
+
+			p.ApplyRotation(flowFieldDirections[particlePos.x, particlePos.y, particlePos.z], particleRotateSpeed);
+			p.moveSpeed = particleMoveSpeed;
+			p.transform.localScale = new Vector3(particleScale, particleScale, particleScale);
+		}
+	}
+	
+	// Update is called once per frame
+	void Update () 
+	{
+		CalculateFlowFieldDirection();
+		ParticleBehavior();
 	}
 
 	private void OnDrawGizmos() 
